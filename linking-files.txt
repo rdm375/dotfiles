@@ -1,0 +1,12 @@
+ln -sfn ~/dotfiles/.bashrc ~/.bashrc
+ln -sfn ~/dotfiles/.bash_aliases ~/.bash_aliases
+ln -sfn ~/dotfiles/.emacs ~/.emacs
+
+-f force - remove existing destination files
+-s symbolic link
+-n no-dereference, ie treat link like normal file, if its a synmbolic link to a dir
+
+
+
+
+
