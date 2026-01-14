@@ -238,3 +238,21 @@ snapshot-pool() {
 list-pool-snapshots() {
   sudo zfs list -t snapshot
 }
+
+alias nulltime='touch -t 197001010000.00'
+alias y2k38='touch -t 203801190314.07'
+alias eternity='touch -t 999912312359.59'
+
+alias webserver='python3 -m http.server'
+
+
+# List all listening ports and the processes using them
+alias ports='sudo ss -tulanp'
+
+# Show established connections only
+alias conns='ss -ant | grep ESTAB'
+
+# Monitor network usage by process (requires 'nethogs' installed)
+alias ntop='sudo nethogs'
+
+#alias mtr='mtr -rw'
