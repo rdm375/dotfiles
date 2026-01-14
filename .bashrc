@@ -14,6 +14,7 @@ export HISTCONTROL=erasedups:ignoredups:ignorespace
 
 # append to the history file, don't overwrite it
 shopt -s histappend
+shopt -s histverify
 PROMPT_COMMAND='history -a'
 # for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
 HISTSIZE=1000
@@ -114,10 +115,14 @@ if ! shopt -oq posix; then
   fi
 fi
 
-export EDITOR="emacs -nw"
-export VISUAL="emacs -nw"
+export EDITOR='emacsclient -a emacs -t'
+export VISUAL='emacsclient -a emacs -c'
 
-PATH=$PATH:"/home/redacted/.local/bin/"
-PATH=$PATH:"/home/redacted/.local/bin/Chasing-Your-Tail-NG"
-PATH=$PATH:"/home/redacted/.local/bin/android-studio/bin"
 
+path_prepend () { case ":$PATH:" in *":$1:"*) ;; *) PATH="$1:$PATH";; esac; }
+
+path_prepend "$HOME/.local/bin"
+path_prepend "$HOME/.local/bin/Chasing-Your-Tail-NG"
+path_prepend "$HOME/.local/bin/android-studio/bin"
+path_prepend "$HOME/.local/bin/malcat/bin"
+export PATH
