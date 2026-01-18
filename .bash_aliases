@@ -256,3 +256,14 @@ alias conns='ss -ant | grep ESTAB'
 alias ntop='sudo nethogs'
 
 #alias mtr='mtr -rw'
+
+#-------------------------------------------------------------
+# Yubikey helpers
+#-------------------------------------------------------------
+
+restart-smartcard-stack() {
+  # fixes most "No such device" errors
+  sudo systemctl restart pcscd
+  gpgconf --kill gpg-agent
+  gpgconf --kill scdaemon
+}

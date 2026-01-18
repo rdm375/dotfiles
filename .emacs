@@ -66,3 +66,17 @@
 ;; ========== python ========== 
 (setq  py-indent-offset  2)
 (setq  py-continuation-offset  4)
+(put 'upcase-region 'disabled nil)
+
+;; Use hunspell
+(setq ispell-program-name "hunspell")
+(setq ispell-dictionary "en_US")
+
+;; Optional: faster startup
+(setq ispell-really-hunspell t)
+
+;; Text modes (Markdown, Org, LaTeX, etc.)
+(add-hook 'text-mode-hook #'flyspell-mode)
+
+;; Comments & strings in code
+(add-hook 'prog-mode-hook #'flyspell-prog-mode)
