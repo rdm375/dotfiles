@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+#
+# EXIF / Image Forensics Aliases & Helpers
+# Source this file from ~/.bashrc or ~/.zshrc
+#
+
+# Everything: all tags, unknowns, grouped, short format
+alias exall='exiftool -a -u -G1 -s'
+
+# Deep structural decode (offsets, raw values)
+alias exdeep='exiftool -a -u -G1 -s -v3'
+
+# MakerNotes only (best-effort)
+alias exmaker='exiftool -a -u -G1 -s -MakerNotes'
+
+# Show thumbnails, gain maps, MP images, etc.
+alias exprev='exiftool -a -u -G1 -s -preview:all'
+
+# Dates, times, offsets, sub-seconds
+alias extime='exiftool -a -u -G1 -s -DateTime* -CreateDate -ModifyDate -OffsetTime* -SubSec*'
+
+# GPS quick check
+alias exgps='exiftool -a -u -G1 -s -GPS*'
+
+alias exgps-csv='exiftool -csv -GPS*'
+
+
+# Samsung private tags & trailers
+alias exsamsung='exiftool -a -u -G1 -s -Samsung:* -SamsungTrailer*'
+
+# HDR / gain-map detection
+alias exhdr='exiftool -a -u -G1 -s -GainMap* -MPImage* -HDR*'
+
+# Camera / image identity
+alias exid='exiftool -a -u -G1 -s -ImageUniqueID -CameraSerialNumber -BodySerialNumber'
+
+# Extract embedded thumbnail
+exthumb () {
+  exiftool -b -ThumbnailImage "$1" > thumb.jpg
+  echo "Wrote thumb.jpg"
+}
+
+# Extract gain map image (Ultra HDR)
+exgain () {
+  exiftool -b -GainMapImage "$1" > gainmap.jpg
+  echo "Wrote gainmap.jpg"
+}
+
+# Extract MPImage2 payload
+exmp2 () {
+  exiftool -b -MPImage2 "$1" > mpimage2.bin
+  echo "Wrote mpimage2.bin"
+}
+
+# Diff EXIF metadata between two files
+exdiff () {
+  if [[ $# -ne 2 ]]; then
+    echo "Usage: exdiff file1.jpg file2.jpg"
+    return 1
+  fi
+  exiftool -a -u -G1 -s "$1" > /tmp/exif_a.txt
+  exiftool -a -u -G1 -s "$2" > /tmp/exif_b.txt
+  diff -u /tmp/exif_a.txt /tmp/exif_b.txt | less
+}
