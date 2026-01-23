@@ -62,3 +62,57 @@ exdiff () {
   exiftool -a -u -G1 -s "$2" > /tmp/exif_b.txt
   diff -u /tmp/exif_a.txt /tmp/exif_b.txt | less
 }
+
+# Strip ALL metadata (overwrite original!)
+alias exstrip='exiftool -all= -overwrite_original'
+
+
+# ========== pdf ==========
+pdf-crack() {
+  if [ $# -ne 1 ]; then
+    echo "Usage: pdf-crack <file.pdf>"
+    return 1
+  fi
+
+  local pdf="$1"
+  local hashfile="${pdf}.hash"
+
+  pdf2john.pl "$pdf" > "$hashfile" || return 1
+  john "$hashfile"
+  john --show "$hashfile"
+}
+
+zip-crack() {
+  if [ $# -ne 1 ]; then
+    echo "Usage: zip-crack <file.zip>"
+    return 1
+  fi
+
+  zip2john "$1" > "$1.hash" || return 1
+  john "$1.hash"
+  john --show "$1.hash"
+}
+
+7z-crack() {
+  if [ $# -ne 1 ]; then
+    echo "Usage: 7z-crack <file.7z>"
+    return 1
+  fi
+
+  7z2john "$1" > "$1.hash" || return 1
+  john "$1.hash"
+  john --show "$1.hash"
+}
+
+
+docx-crack() {
+  if [ $# -ne 1 ]; then
+    echo "Usage: docx-crack <file.docx>"
+    return 1
+  fi
+
+  python3 $(which office2john.py) "$1" > "$1.hash" || return 1
+  john "$1.hash"
+  john --show "$1.hash"
+}
+

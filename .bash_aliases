@@ -73,6 +73,9 @@ alias bd='cd "$OLDPWD"'
 #-------------------------------------------------------------
 alias hist-grep='history | grep -i'
 alias ps-grep='ps aux | grep -i'
+alias dpkg-grep='dpkg -l | grep -E '
+alias lsub-grep='lsub | grep -i'
+
 alias top-cpu='/bin/ps -eo pcpu,pid,user,args | sort -k 1 -r | head -10'
 
 #-------------------------------------------------------------
@@ -263,7 +266,160 @@ alias ntop='sudo nethogs'
 
 restart-smartcard-stack() {
   # fixes most "No such device" errors
-  sudo systemctl restart pcscd
-  gpgconf --kill gpg-agent
+  lsusb | grep -i yubico
+  sudo systemctl stop pcscd
+  sudo pkill -f pcscd || true
+  sudo systemctl start pcscd
   gpgconf --kill scdaemon
+  gpgconf --kill gpg-agent
+  gpg --card-status
 }
+
+start-gpg-agent() {
+  gpgconf --launch gpg-agent
+}
+
+gpg-card-status() {
+  gpg --card-status
+}
+
+list-local-gpg(){
+  gpg --list-secret-keys --keyid-format LONG
+}
+
+alias yk-info='ykman info'
+alias yk-list='ykman list'
+alias lsusb-yk='lsusb | grep -i yubico'
+
+yk-test-gpg-encryption() {
+
+  echo "hello yubikey" | tee plain.txt
+  gpg -e -r 6B2D8ED5D98247D4 plain.txt
+
+  hexdump -C plain.txt.gpg
+  
+  gpg -d plain.txt.gpg
+
+  rm -f plain.txt plain.txt.gpg decrypted.txt
+
+
+
+#  echo "hello yubikey" | tee plain.txt
+# 
+#  
+#  gpg -e -r 116EC3D65FC87A1B4581A81B4F1E0D6ABC7DD4D8 plain.txt
+#
+#  echo ""
+#  echo "encrypted text"
+
+#  echo ""
+#
+#  echo "touch your key to decrypt"
+#  gpg -d plain.txt.gpg
+#
+#
+#  cat decrypted.txt
+
+
+#  echo "testing 1 2 3" | gpg -e -r 116EC3D65FC87A1B4581A81B4F1E0D6ABC7DD4D8 | gpg -d
+}
+
+
+wipe-drive-pattern() {
+  local drive="$1"
+  local pattern="${2:-Testing123}"
+
+  if [[ -z "$drive" ]]; then
+    echo "Usage: write-pattern-to-drive /dev/sdX [PATTERN]"
+    return 1
+  fi
+
+  if [[ ! -b "$drive" ]]; then
+    echo "Error: $drive is not a block device"
+    return 1
+  fi
+
+  echo "Writing ASCII pattern '$pattern' to $drive"
+  echo "CTRL-C now if this is wrong..."
+  sleep 5
+
+  while :; do
+    printf '%s' "$pattern"
+  done | sudo dd of="$drive" bs=4M status=progress conv=fsync
+}
+
+head-disk() {
+  local lines=25
+  OPTIND=1
+
+  while getopts n: opt; do
+    [[ $opt == n && $OPTARG =~ ^[0-9]+$ ]] || return 1
+    lines=$OPTARG
+  done
+  shift $((OPTIND - 1))
+
+  local bytes=$(( lines * 16 ))
+  
+  sudo dd if="$1" bs=4M count="$bytes" status=none 2> /dev/null \
+    | hexdump -C \
+    | head -n "$lines"
+
+}
+
+wipe-thumb-drive() {
+  local drive="$1"
+  local pattern="${2:-Testing...1...2...3...}"
+  local label="${3:-DATA}"
+  local part
+
+  if [[ -z "$drive" ]]; then
+    echo "Usage: wipe-thumb-drive /dev/sdX [PATTERN] [LABEL]"
+    return 1
+  fi
+
+  if [[ ! -b "$drive" ]]; then
+    echo "Error: $drive is not a block device"
+    return 1
+  fi
+
+  echo "Wiping $drive with pattern '$pattern'"
+  echo "CTRL-C now if this is wrong"
+  sleep 5
+
+  # 1) Pattern wipe (ASCII, newline-free)
+  while :; do
+    printf '%s' "$pattern"
+  done | sudo dd of="$drive" bs=4M status=progress conv=fsync
+  [[ ${PIPESTATUS[1]} -eq 0 ]] || { echo "dd failed"; return 1; }
+
+  # 2) Create GPT + single partition
+  sudo parted -s "$drive" mklabel gpt
+  sudo parted -s -a optimal "$drive" mkpart primary 0% 100%
+
+  # 3) Notify kernel and wait for partition
+  sudo partprobe "$drive"
+
+  if [[ "$drive" =~ nvme ]]; then
+    part="${drive}p1"
+  else
+    part="${drive}1"
+  fi
+
+  for _ in {1..50}; do
+    [[ -b "$part" ]] && break
+    sleep 0.1
+  done
+
+  if [[ ! -b "$part" ]]; then
+    echo "Partition node not found: $part"
+    return 1
+  fi
+
+  sudo parted -s "$drive" set 1 msftdata on 2>/dev/null || true
+
+  sudo mkfs.exfat -n "$label" "$part"
+
+  echo "Done."
+  lsblk "$drive"
+}
+

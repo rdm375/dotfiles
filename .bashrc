@@ -130,6 +130,7 @@ path_prepend "$HOME/.local/bin"
 path_prepend "$HOME/.local/bin/Chasing-Your-Tail-NG"
 path_prepend "$HOME/.local/bin/android-studio/bin"
 path_prepend "$HOME/.local/bin/malcat/bin"
+path_prepend "/snap/john-the-ripper/current/bin/"
 export PATH
 
 export SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)"
