@@ -108,6 +108,10 @@ if [ -f ~/.bash_forensics ]; then
     . ~/.bash_forensics
 fi
 
+if [ -f ~/.bash_aws ]; then
+    . ~/.bash_aws
+fi
+
 
 # enable programmable completion features (you don't need to enable
 # this, if it's already enabled in /etc/bash.bashrc and /etc/profile

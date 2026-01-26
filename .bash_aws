@@ -1,0 +1,74 @@
+
+#===============================================================================
+
+alias s3ls='aws s3 ls'
+alias s3cp='aws s3 cp'
+alias s3mv='aws s3 mv'
+alias s3rm='aws s3 rm'
+alias s3sync='aws s3 sync'
+alias s3du='aws s3 ls --recursive --human-readable --summarize'
+
+#===============================================================================
+
+alias eksls='aws eks list-clusters'
+alias eksdesc='aws eks describe-cluster --name'
+alias ekscfg='aws eks update-kubeconfig --name'
+alias ekscfgp='aws eks update-kubeconfig --profile'
+
+alias k='kubectl'
+alias kctx='kubectl config current-context'
+alias kctxs='kubectl config get-contexts'
+alias kns='kubectl config set-context --current --namespace'
+
+alias kx='kubectx'
+alias kn='kubens'
+
+alias kget='kubectl get'
+alias kga='kubectl get all'
+alias kgn='kubectl get nodes -o wide'
+alias kgp='kubectl get pods'
+alias kgpa='kubectl get pods -A'
+alias kgs='kubectl get svc'
+alias kgi='kubectl get ingress'
+
+alias kd='kubectl describe'
+alias kdp='kubectl describe pod'
+alias kdn='kubectl describe node'
+alias kds='kubectl describe svc'
+
+alias kl='kubectl logs'
+alias klf='kubectl logs -f'
+alias klt='kubectl logs --tail=100'
+alias kexec='kubectl exec -it'
+
+alias kgd='kubectl get deploy'
+alias kdd='kubectl describe deploy'
+alias krs='kubectl rollout status deploy'
+alias krh='kubectl rollout history deploy'
+alias krestart='kubectl rollout restart deploy'
+
+alias kscale='kubectl scale'
+alias ksetimg='kubectl set image'
+alias kannotate='kubectl annotate'
+alias klabel='kubectl label'
+
+alias kpf='kubectl port-forward'
+alias kproxy='kubectl proxy'
+
+alias kevents='kubectl get events --sort-by=.metadata.creationTimestamp'
+alias ktop='kubectl top pods'
+alias ktopn='kubectl top nodes'
+
+alias awho='aws sts get-caller-identity'
+alias eksauth='aws eks get-token --cluster-name'
+alias eksnodes='aws ec2 describe-instances \
+  --filters Name=tag:eks:cluster-name,Values='
+
+alias kwide='kubectl get -o wide'
+alias kyaml='kubectl get -o yaml'
+alias kjson='kubectl get -o json'
+
+alias kdel='kubectl delete'
+alias kdelp='kubectl delete pod'
+alias kdelns='kubectl delete namespace'
+

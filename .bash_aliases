@@ -3,6 +3,11 @@
 # Personal aliases & functions (safe-ish defaults + helpers)
 #==============================================================
 
+
+alias gc-cs='gcloud cheat-sheet'
+
+
+
 #-------------------------------------------------------------
 # Spelling typos - highly personal and keyboard-dependent :-)
 #-------------------------------------------------------------
@@ -102,6 +107,24 @@ alias untar='tar -xvf'
 alias unbz2='tar -xvjf'
 alias ungz='tar -xvzf'
 
+
+
+alias ls-zip='unzip -l'
+
+extract-takeout-zip() {
+  mkdir -p Takeout
+  unzip "$1" "Takeout/*" -d Takeout
+}
+
+
+alias ls-tgz='tar -tvzf'
+
+extract-takeout-tgz() {
+  mkdir -p Takeout
+  tar -xzf $1 Takeout -C Takeout
+}
+
+
 extract() {
   local f="$1"
   if [[ -z "$f" ]]; then
@@ -171,6 +194,120 @@ mvv() {
 #-------------------------------------------------------------
 now() { date +"%Y-%m-%d_%H-%M-%S"; }
 now-std() { date +"%Y-%m-%d_%H:%M:%S"; }
+
+webkit-to-utc() {
+  EPOCH_1601=11644473600
+
+  usage() {
+    cat <<'EOF'
+Usage:
+  webkit-to-utc <webkit_timestamp>
+
+Example:
+  webkit-to-utc 13377035416000000
+EOF
+  }
+
+  [[ -z "$1" ]] && { usage; return 1; }
+  [[ ! "$1" =~ ^[0-9]+$ ]] && { echo "Error: numeric timestamp required"; return 1; }
+
+  micro="$1"
+  seconds=$(( micro / 1000000 - EPOCH_1601 ))
+
+  TZ=UTC0 date -u -d "@$seconds" +"%Y-%m-%d %H:%M:%S UTC"
+}
+
+utc-to-webkit() {
+  EPOCH_1601=11644473600
+
+  usage() {
+    cat <<'EOF'
+Usage:
+  utc-to-webkit "<YYYY-MM-DD HH:MM:SS>"
+  utc-to-webkit YYYY-MM-DD HH:MM:SS
+
+Examples:
+  utc-to-webkit "2011-10-26 14:30:00"
+  utc-to-webkit 2011-10-26 14:30:00
+EOF
+  }
+
+  [[ $# -lt 1 ]] && { usage; return 1; }
+
+  datetime="$*"
+
+  # Force UTC parsing
+  seconds=$(TZ=UTC0 date -d "$datetime" +%s 2>/dev/null) || {
+    echo "Error: invalid UTC date"
+    usage
+    return 1
+  }
+
+  echo $(( (seconds + EPOCH_1601) * 1000000 ))
+}
+
+unix-to-utc() {
+  usage() {
+    cat <<'EOF'
+Usage:
+  unix-to-utc <epoch_seconds>
+
+Example:
+  unix-to-utc 1319639400
+EOF
+  }
+
+  [[ -z "$1" ]] && { usage; return 1; }
+  [[ ! "$1" =~ ^-?[0-9]+$ ]] && { echo "Error: numeric epoch seconds required"; return 1; }
+
+  TZ=UTC0 date -u -d "@$1" +"%Y-%m-%d %H:%M:%S UTC"
+}
+
+utc-to-unix() {
+  usage() {
+    cat <<'EOF'
+Usage:
+  utc-to-unix "<YYYY-MM-DD HH:MM:SS>"
+  utc-to-unix YYYY-MM-DD HH:MM:SS
+
+Examples:
+  utc-to-unix "2011-10-26 14:30:00"
+  utc-to-unix 2011-10-26 14:30:00
+EOF
+  }
+
+  [[ $# -lt 1 ]] && { usage; return 1; }
+
+  datetime="$*"
+
+  # Force UTC parsing
+  seconds=$(TZ=UTC0 date -d "$datetime" +%s 2>/dev/null) || {
+    echo "Error: invalid UTC date"
+    usage
+    return 1
+  }
+
+  echo "$seconds"
+}
+
+utc-to-central() {
+  usage() {
+    cat <<'EOF'
+Usage:
+  utc-to-central "<YYYY-MM-DD HH:MM:SS>"
+  utc-to-central YYYY-MM-DD HH:MM:SS
+
+Example:
+  utc-to-central "2011-10-26 14:30:00"
+EOF
+  }
+
+  [[ $# -lt 1 ]] && { usage; return 1; }
+  utc="$*"
+
+  # Parse as UTC, then display in America/Chicago (DST-aware)
+  TZ=America/Chicago date -d "$(TZ=UTC0 date -d "$utc" +"%Y-%m-%d %H:%M:%S" 2>/dev/null)" +"%Y-%m-%d %H:%M:%S %Z"
+}
 
 
 #-------------------------------------------------------------
@@ -366,60 +503,93 @@ head-disk() {
 
 }
 
-wipe-thumb-drive() {
-  local drive="$1"
-  local pattern="${2:-Testing...1...2...3...}"
-  local label="${3:-DATA}"
-  local part
 
-  if [[ -z "$drive" ]]; then
-    echo "Usage: wipe-thumb-drive /dev/sdX [PATTERN] [LABEL]"
-    return 1
-  fi
+skeleton-function() {
+  usage() {
+    cat <<'EOF'
+Usage:
+  skeleton-function [options] <pos1> <pos2>
 
-  if [[ ! -b "$drive" ]]; then
-    echo "Error: $drive is not a block device"
-    return 1
-  fi
+Options:
+  -a, --alpha ARG   alpha value (required)
+  -b, --bravo ARG   bravo value (optional)
+  -x, --xray        xray flag
+  -y, --yankee      yankee flag
+  -h, --help        show help
 
-  echo "Wiping $drive with pattern '$pattern'"
-  echo "CTRL-C now if this is wrong"
-  sleep 5
+Example:
+  skeleton-function -a foo --xray one two
+EOF
+  }
 
-  # 1) Pattern wipe (ASCII, newline-free)
-  while :; do
-    printf '%s' "$pattern"
-  done | sudo dd of="$drive" bs=4M status=progress conv=fsync
-  [[ ${PIPESTATUS[1]} -eq 0 ]] || { echo "dd failed"; return 1; }
+  # -------------------------
+  # Defaults
+  # -------------------------
+  alpha=""
+  bravo=""
+  xray=false
+  yankee=false
 
-  # 2) Create GPT + single partition
-  sudo parted -s "$drive" mklabel gpt
-  sudo parted -s -a optimal "$drive" mkpart primary 0% 100%
+  # -------------------------
+  # Long -> short normalization (generic-ish)
+  # Extend this mapping list for more options.
+  # -------------------------
+  _normalize_args() {
+    local out=()
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --alpha)   out+=(-a "$2"); shift 2 ;;
+        --alpha=*) out+=(-a "${1#*=}"); shift ;;
 
-  # 3) Notify kernel and wait for partition
-  sudo partprobe "$drive"
+        --bravo)   out+=(-b "$2"); shift 2 ;;
+        --bravo=*) out+=(-b "${1#*=}"); shift ;;
 
-  if [[ "$drive" =~ nvme ]]; then
-    part="${drive}p1"
-  else
-    part="${drive}1"
-  fi
+        --xray)    out+=(-x); shift ;;
+        --yankee)  out+=(-y); shift ;;
+        --help)    out+=(-h); shift ;;
 
-  for _ in {1..50}; do
-    [[ -b "$part" ]] && break
-    sleep 0.1
+        --) out+=(--); shift; out+=("$@"); break ;; # pass-through remainder
+        *)  out+=("$1"); shift ;;
+      esac
+    done
+    printf '%s\0' "${out[@]}"
+  }
+
+  # Rebuild "$@" safely from NUL-delimited output
+  local normalized
+  normalized="$(_normalize_args "$@")" || return 1
+  # shellcheck disable=SC2206
+  IFS=$'\0' read -r -d '' -a _argv <<<"${normalized}"$'\0'
+  set -- "${_argv[@]}"
+
+  # -------------------------
+  # getopts (short options only now)
+  # -------------------------
+  local opt OPTARG OPTIND=1
+  while getopts ":a:b:xyh" opt; do
+    case "$opt" in
+      a) alpha="$OPTARG" ;;
+      b) bravo="$OPTARG" ;;
+      x) xray=true ;;
+      y) yankee=true ;;
+      h) usage; return 0 ;;
+      :) echo "Error: option -$OPTARG requires an argument" >&2; usage; return 1 ;;
+      \?) echo "Error: invalid option -$OPTARG" >&2; usage; return 1 ;;
+    esac
   done
+  shift $((OPTIND - 1))
 
-  if [[ ! -b "$part" ]]; then
-    echo "Partition node not found: $part"
-    return 1
-  fi
+  # -------------------------
+  # Positional args (two required)
+  # -------------------------
+  [[ -z "$alpha" ]] && { echo "Error: -a/--alpha is required" >&2; usage; return 1; }
+  [[ $# -lt 2 ]] && { echo "Error: expected 2 positional args: <pos1> <pos2>" >&2; usage; return 1; }
+  local pos1="$1" pos2="$2"; shift 2
+  [[ $# -gt 0 ]] && { echo "Error: unexpected extra args: $*" >&2; usage; return 1; }
 
-  sudo parted -s "$drive" set 1 msftdata on 2>/dev/null || true
-
-  sudo mkfs.exfat -n "$label" "$part"
-
-  echo "Done."
-  lsblk "$drive"
+  # -------------------------
+  # Main logic
+  # -------------------------
+  printf 'alpha=%q\nbravo=%q\nxray=%q\nyankee=%q\npos1=%q\npos2=%q\n' \
+    "$alpha" "$bravo" "$xray" "$yankee" "$pos1" "$pos2"
 }
-
