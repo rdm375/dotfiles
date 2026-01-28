@@ -59,7 +59,7 @@ alias lr='ll -R'
 alias la='ll -A'
 
 # Tree variants (avoid redefining "tree" twice)
-alias tree='tree -CAhF --dirsfirst'
+alias tree='tree -CAF --dirsfirst'
 alias treed='tree -CAFd'
 
 #-------------------------------------------------------------
